@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import scrapy
 
-from noticias.items import NoticiasItem
+from crawlerNoticias.items import NoticiasItem
 
 
 class TecnoblogSpider(scrapy.Spider):
@@ -12,9 +12,15 @@ class TecnoblogSpider(scrapy.Spider):
     def parse(self, response):
         for article in response.css("article"):
             link    = article.css("div.texts h2 a::attr(href)").extract_first()
-            title   = article.css("div.texts h2 a::text").extract_first()
-            author  = article.css("div.texts div.info a::text").extract_first()
 
-            notice = NoticiasItem(title=title, author=author, link=link);
+            yield response.follow(link, self.parse_article)
 
-            yield notice
+    def parse_article(self, response):
+        link    = response.url
+        title   = response.css("title ::text").extract_first()
+        author  = response.css("span.author ::text").extract_first()
+        text    = "".join(response.css("div.entry ::text").extract())
+
+        notice = NoticiasItem(title=title, author=author, text=text, link=link)
+
+        yield notice
